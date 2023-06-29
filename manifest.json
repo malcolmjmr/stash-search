@@ -1,0 +1,50 @@
+{
+    "name": "Sidepanel Search",
+    "version": "0.0.0.1",
+    "description": "Search multiple websites using the same search query.",
+    "background": {
+        "service_worker": "service-worker.js",
+        "type": "module"
+    },
+    "side_panel": {
+        "default_path": "sidepanel/index.html"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "content/index.js"
+            ],
+            "run_at": "document_start"
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "sidepanel/*"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ],
+    "externally_connectable": {
+        "matches": [
+            "http://localhost:3000/*",
+            "https://stash.technology/*"
+        ]
+    },
+    "action": {
+        "default_title": "Sidepanel Search"
+    },
+    "permissions": [
+        "tabs",
+        "tabGroups",
+        "sidePanel"
+    ],
+    "incognito": "spanning",
+    "commands": {},
+    "manifest_version": 3
+}
