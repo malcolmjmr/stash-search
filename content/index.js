@@ -56,3 +56,21 @@ async function onKeyDown(e) {
         }, 1000);
     }
 }
+
+function updateLastLocation() {
+    lastWindowLocation = window.location.href;
+    window.setTimeout(() => {
+        try {
+            chrome.runtime.sendMessage({
+                command: 'resourceOpened',
+                resource: {
+                    title: document.title,
+                    url: lastWindowLocation,
+                },
+            }, onResourceOpened);
+        } catch (e) {
+
+        }
+
+    }, 1000);
+}

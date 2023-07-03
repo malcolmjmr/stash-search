@@ -1,8 +1,11 @@
 chrome.runtime.onMessage.addListener(onMessageFromContent);
 
+chrome.sidePanel
+    .setPanelBehavior({ openPanelOnActionClick: true })
+    .catch((error) => console.error(error));
+
+
 function onMessageFromContent(msg, sender, response) {
-
-
     if (msg.command == 'searchEntered') onSearchEntered(sender.tab, msg.searchString);
     else if (msg.command == 'resourceOpened') onResourceOpened(sender.tab, response);
     return true;
@@ -10,7 +13,7 @@ function onMessageFromContent(msg, sender, response) {
 
 
 async function onResourceOpened(tab) {
-
+    set({ searchDomains: [] });
     checkTabForSearch(tab);
 }
 
@@ -30,31 +33,28 @@ async function onSearchEntered(tab, searchString, response) {
 
 }
 
-const searchPlaceholder = '<|search|>'
-async function checkTabForSearch(context, tab) {
+const searchPlaceholder = '<|search|>';
+async function checkTabForSearch(tab) {
 
     let url = new URL(getTabInfo(tab).url);
-    let searchEngines = (await get('searchEngines')) ?? [];
+    let searchDomains = (await get('searchDomains')) ?? [];
 
+    let searchDomainIndex = searchDomains.findIndex((s) => s.hostname == url.hostname);
+    let searchDomain;
+    if (searchDomainIndex > -1) {
 
-    let searchEngineIndex = searchEngines.findIndex((s) => s.hostname == url.hostname);
-    let searchEngine;
-    if (searchEngineIndex > -1) {
+        searchDomain = searchDomains[searchDomainIndex];
 
-        searchEngine = searchEngines[searchEngineIndex];
-
-        const searchPrefix = searchEngine.template.split(searchPlaceholder)[0];
+        const searchPrefix = searchDomain.template.split(searchPlaceholder)[0];
 
         const matchesSearchTemplate = url.toString().startsWith(searchPrefix);
 
         if (matchesSearchTemplate) {
-            if (!searchEngine.searchCount) searchEngine.searchCount = 0;
-            searchEngine.searchCount += 1;
-            searchEngine.lastUsed = Date.now();
-            searchEngine.isIncognito = tab.incognito;
-            if (!searchEngine.contexts) searchEngine.contexts = [];
-            if (context && !searchEngine.contexts.includes(context.id)) searchEngine.contexts.push(context.id);
-            searchEngines[searchEngineIndex] = searchEngine;
+            if (!searchDomain.searchCount) searchDomain.searchCount = 0;
+            searchDomain.searchCount += 1;
+            searchDomain.lastUsed = Date.now();
+            searchDomain.isIncognito = tab.incognito;
+            searchDomains[searchDomainIndex] = searchDomain;
         }
 
     } else {
@@ -75,48 +75,38 @@ async function checkTabForSearch(context, tab) {
 
         if (foundSearch) {
 
-            searchEngine = {
+            console.log('adding search domain:');
+
+            searchDomain = {
                 searchCount: 1,
                 created: lastSearch.time,
                 hostname: lastSearch.hostname,
                 isIncognito: tab.incognito,
                 template,
                 ...lastSearch.tab,
-                contexts: context ? [context.id] : [],
             }
 
-            delete searchEngine.id;
+            console.log(searchDomain);
 
-            searchEngines.push(searchEngine);
+            delete searchDomain.id;
+
+            searchDomains.push(searchDomain);
+            chrome.runtime.sendMessage({ command: 'searchDomainAdded' });
         }
+
+
     }
 
-    if (searchEngine) {
-        if (context) {
-            if (!context.searchCount) context.searchCount = 0;
-            context.searchCount += 1;
-            saveContext(context);
-        }
-
-        set({ searchEngines });
+    if (searchDomain) {
+        set({ searchDomains });
     }
 
 }
 
-async function onOpenVerticalSearch(tab, { searchEngine, searchText, newTab = true }) {
-    let url;
-    if (searchText.length > 0) {
-        url = encodeURI(searchEngine.template.replace(searchPlaceholder, searchText));
-    } else {
-        url = searchEngine.url;
-    }
 
-    if (newTab) createAdjacentTab(tab, { url });
-    else chrome.tabs.update(tab.id, { url });
-}
 
-async function getSearchEnginesFromApp(response) {
-    response({ searchEngines: await get('searchEngines') });
+async function getSearchDomainsFromApp(response) {
+    response({ searchDomains: await get('searchDomains') });
 }
 
 async function getDomainsFromApp(response) {
@@ -154,4 +144,26 @@ async function getDomainsFromApp(response) {
     }).filter((d) => d.count > 2);;
 
     response({ domains });
+}
+
+async function get(key) {
+    const data = (await chrome.storage.local.get([key])) ?? {};
+    return data[key];
+}
+
+async function set(record) {
+    await chrome.storage.local.set(record);
+}
+
+function getTabInfo(tab) {
+
+    let tabInfo = {
+        id: tab.id,
+        title: tab.title,
+        url: tab.url && tab.url != '' ? tab.url : tab.pendingUrl,
+        favIconUrl: tab.favIconUrl,
+
+    };
+
+    return tabInfo;
 }

@@ -42,7 +42,10 @@
     "permissions": [
         "tabs",
         "tabGroups",
-        "sidePanel"
+        "sidePanel",
+        "storage",
+        "unlimitedStorage",
+        "favicon"
     ],
     "incognito": "spanning",
     "commands": {},
