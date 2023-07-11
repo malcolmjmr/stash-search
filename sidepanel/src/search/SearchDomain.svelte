@@ -1,6 +1,6 @@
 <script>
     import { onMount } from "svelte";
-    import { getFavIconUrl } from "../utilities/chrome";
+    import { getFavIconUrl, getSearchUrl } from "../utilities/chrome";
 
     export let searchDomain;
     export let searchText;
@@ -18,12 +18,32 @@
         loaded = true;
     };
 
-    const onMouseDown = () => {
-        if (searchText.length > 0) {
-        }
+    const onMouseDown = async () => {
+        // set interval
     };
 
-    const onMouseUp = () => {};
+    const onMouseUp = async () => {
+        // check that user has not performed a long press
+        const activeTab = (
+            await chrome.tabs.query({ active: true, currentWindow: true })
+        )[0];
+        if ((searchText?.length ?? 0) > 0) {
+            const newTab = await chrome.tabs.create({
+                url: getSearchUrl({ searchDomain, searchText }),
+                index: activeTab.index + 1,
+            });
+            let groupId =
+                activeTab.groupId > -1
+                    ? activeTab.groupId
+                    : (await chrome.tabGroups.create({ title: searchText })).id;
+            await chrome.tabs.group({ tabId: newTab.id, groupId });
+        } else {
+            const newTab = await chrome.tabs.create({
+                url: new URL(searchDomain).hostname,
+                index: activeTab.index + 1,
+            });
+        }
+    };
 </script>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -33,7 +53,7 @@
         on:mousedown={onMouseDown}
         on:mouseup={onMouseUp}
     >
-        <img src={searchDomain.iconUrl} alt="" />
+        <img src={iconUrl} alt="" />
     </div>
 {/if}
 

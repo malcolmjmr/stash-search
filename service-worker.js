@@ -6,6 +6,7 @@ chrome.sidePanel
 
 
 function onMessageFromContent(msg, sender, response) {
+    console.log('message from content');
     if (msg.command == 'searchEntered') onSearchEntered(sender.tab, msg.searchString);
     else if (msg.command == 'resourceOpened') onResourceOpened(sender.tab, response);
     return true;
@@ -13,13 +14,14 @@ function onMessageFromContent(msg, sender, response) {
 
 
 async function onResourceOpened(tab) {
-    set({ searchDomains: [] });
     checkTabForSearch(tab);
 }
 
 
 async function onSearchEntered(tab, searchString, response) {
 
+    console.log('search entered');
+    console.log(searchString);
     const url = new URL(tab.url);
     const lastSearch = {
         searchString,
@@ -59,6 +61,7 @@ async function checkTabForSearch(tab) {
 
     } else {
         const lastSearch = (await get('lastSearch')) ?? {};
+
 
         const template = decodeURI(url.toString())
             .replaceAll('%3A', ':').replaceAll('+', ' ')

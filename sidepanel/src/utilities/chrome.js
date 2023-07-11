@@ -5,8 +5,8 @@ export const getSearchDomains = async () => {
 
 }
 
-const searchPlaceholder = '<|search|>';
-export async function openVerticalSearch({ searchDomain, searchText, newTab = true }) {
+export const searchPlaceholder = '<|search|>';
+export function getSearchUrl({ searchDomain, searchText }) {
     let url;
     if (searchText.length > 0) {
         url = encodeURI(searchDomain.template.replace(searchPlaceholder, searchText));
@@ -14,10 +14,7 @@ export async function openVerticalSearch({ searchDomain, searchText, newTab = tr
         url = searchDomain.url;
     }
 
-    const activeTab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0]
-
-    if (newTab) chrome.tabs.create({ url, index: activeTab.index + 1, })
-    else chrome.tabs.update(tab.id, { url });
+    return url;
 }
 
 export const getFavIconUrl = async (u) => {

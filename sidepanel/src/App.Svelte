@@ -14,6 +14,7 @@
 
     const init = async () => {
         searchDomains = await getSearchDomains();
+        console.log(searchDomains);
         addEventListeners();
         loaded = true;
     };
