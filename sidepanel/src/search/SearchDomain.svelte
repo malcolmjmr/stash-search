@@ -24,6 +24,7 @@
 
     const onMouseUp = async () => {
         // check that user has not performed a long press
+
         const activeTab = (
             await chrome.tabs.query({ active: true, currentWindow: true })
         )[0];
